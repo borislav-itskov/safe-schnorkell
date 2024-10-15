@@ -1,5 +1,4 @@
 import Safe from "@safe-global/protocol-kit";
-import { MetaTransactionData } from "@safe-global/safe-core-sdk-types";
 require("dotenv").config();
 
 async function main() {
@@ -15,17 +14,11 @@ async function main() {
     signer: signerPrivateKey,
     safeAddress,
   });
-  const safeTransactionData: MetaTransactionData = {
-    to: "0xb7E4F998792C1983e3379a91DbD14854649506E2",
-    value: "100",
-    data: "0x",
-  };
-  // Create a Safe transaction with the provided parameters
-  const safeTransaction = await protocolKitOwner.createTransaction({
-    transactions: [safeTransactionData],
-  });
+  const moduleTxn = await protocolKitOwner.createEnableModuleTx(
+    process.env.MODULE_ADDR!
+  );
   const executeTxResponse = await protocolKitOwner.executeTransaction(
-    safeTransaction
+    moduleTxn
   );
   // @ts-ignore
   const receipt = await executeTxResponse.transactionResponse?.wait();

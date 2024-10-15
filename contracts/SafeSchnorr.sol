@@ -9,10 +9,10 @@ contract SafeSchnorr {
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
     // the schnorr signer address
-    address internal immutable signer;
+    address public immutable signer;
 
     // the safe address the module is enabled for
-    ISafe internal immutable safe;
+    ISafe public immutable safe;
 
     // Transaction structure
     // we handle replay protection separately by requiring (address(this), chainID, nonce) as part of the sig
