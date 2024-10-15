@@ -1,5 +1,4 @@
-import Safe, { SafeFactory } from "@safe-global/protocol-kit";
-import { SafeAccountConfig } from "@safe-global/protocol-kit";
+import Safe from "@safe-global/protocol-kit";
 import { MetaTransactionData } from "@safe-global/safe-core-sdk-types";
 require("dotenv").config();
 

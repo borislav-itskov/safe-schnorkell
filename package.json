@@ -7,6 +7,7 @@
     "@safe-global/api-kit": "^2.4.3",
     "@safe-global/protocol-kit": "^4.0.3",
     "@safe-global/safe-core-sdk-types": "^5.0.3",
+    "@safe-global/safe-smart-account": "github:safe-global/safe-smart-account",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.4"
   }
