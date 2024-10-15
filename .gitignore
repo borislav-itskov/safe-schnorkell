@@ -130,3 +130,6 @@ dist
 .pnp.*
 
 cache/*
+artifacts/*
+ignition/deployments/*
+typechain-types/*
