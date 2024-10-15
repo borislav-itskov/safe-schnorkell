@@ -66,7 +66,7 @@ contract SafeSchnorr {
             e == keccak256(abi.encodePacked(R, uint8(parity), px, commitment)),
             "SV_SCHNORR_FAILED"
         );
-        return R;
+        return address(uint160(uint256(px)));
     }
 
     function execute(Call[] calldata calls, bytes calldata signature) external {
