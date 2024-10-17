@@ -53,4 +53,36 @@ describe("Schnorr tests", () => {
     const result = await schnorrModule.ecrecoverSchnorr(msgHash, sigData);
     expect(getSchnorrAddress()).to.equal(result);
   });
+  it("fails because a different message was passed", async () => {
+    const schnorrModule = await ethers.deployContract("SafeSchnorr", [
+      process.env.SAFE_ADDR!,
+      getSchnorrAddress(),
+    ]);
+
+    // sign
+    const msg = "just a test message";
+    const msgHash = hashMessage(msg);
+    const privateKey = new Key(
+      Buffer.from(getBytes(process.env.SIGNER_PRIVATE_KEY!))
+    );
+    const sig = Schnorrkel.sign(privateKey, msgHash);
+
+    // wrap the result
+    const publicKey = getBytes(
+      SigningKey.computePublicKey(process.env.SIGNER_PRIVATE_KEY!, true)
+    );
+    const px = publicKey.slice(1, 33);
+    const parity = publicKey[0] - 2 + 27;
+    const abiCoder = new AbiCoder();
+    const sigData = abiCoder.encode(
+      ["bytes32", "bytes32", "bytes32", "uint8"],
+      [px, sig.challenge.buffer, sig.signature.buffer, parity]
+    );
+
+    const wrongMsg = "something else";
+    const wrongMsgHash = hashMessage(wrongMsg);
+    await expect(
+      schnorrModule.ecrecoverSchnorr(wrongMsgHash, sigData)
+    ).to.be.revertedWith("SV_SCHNORR_FAILED");
+  });
 });
