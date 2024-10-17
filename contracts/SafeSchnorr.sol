@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import {ISafe} from "@safe-global/safe-smart-account/contracts/interfaces/ISafe.sol";
+import {Enum} from "@safe-global/safe-smart-account/contracts/libraries/Enum.sol";
 
 contract SafeSchnorr {
     // secp256k1 group order
@@ -22,14 +23,6 @@ contract SafeSchnorr {
         bytes data;
     }
 
-    /**
-     * !!IMPORTANT!!
-     * STORAGE SLOT 0, DO NOT CHANGE STORAGE SLOTS
-     *
-     * The module is going to be used only by delegations.
-     * The nonce variable here should point to the nonce storage slot
-     * of the iSafe(safe) address. That is slot 0
-     */
     uint256 public nonce;
 
     constructor(ISafe _safe, address _signer) {
@@ -37,7 +30,7 @@ contract SafeSchnorr {
         safe = _safe;
     }
 
-    function validate(
+    function ecrecoverSchnorr(
         bytes32 commitment,
         bytes calldata signature
     ) public pure returns (address) {
@@ -70,64 +63,36 @@ contract SafeSchnorr {
     }
 
     function execute(Call[] calldata calls, bytes calldata signature) external {
-        // only delegations from the safe address are allowed
-        require(address(this) == address(safe), "NOT_A_DELEGATION");
-
-        // IMPORTANT
-        // since this is a delegation, the nonce variable actually points to the
-        // storage slot of the ISafe(safe) - storage slot 0. That is the nonce
-        // of the ISafe(safe). So we're incrementing the nonce of the ISafe
+        // prevent reEntry
         uint256 currentNonce = nonce;
         nonce = currentNonce + 1;
 
-        // the signature commitment hash
-        // we reconstruct it here to allow only the currentNonce to be valid
+        // prevent replays by reconstructing the hash with
+        // safe addr, module addr, chainId and nonce
         bytes32 commitment = keccak256(
-            abi.encode(address(this), block.chainid, currentNonce, calls)
+            abi.encode(
+                address(safe),
+                address(this),
+                block.chainid,
+                currentNonce,
+                calls
+            )
         );
 
-        // validate reverts if the signature is invalid
-        address retrievedSigner = validate(commitment, signature);
+        address retrievedSigner = ecrecoverSchnorr(commitment, signature);
         require(retrievedSigner == signer, "INSUFFICIENT_PRIVILEGE");
 
         // execute the batch
         uint256 len = calls.length;
         for (uint256 i = 0; i < len; i++) {
             Call memory call = calls[i];
-            if (call.to != address(0))
-                executeCall(call.to, call.value, call.data);
-        }
-    }
-
-    /**
-     * @notice  Execute a signle transaction
-     * @dev     we shouldn't use address.call(), cause: https://github.com/ethereum/solidity/issues/2884
-     * @param   to  the address we're sending to
-     * @param   value  the amount we're sending
-     * @param   data  callData
-     */
-    function executeCall(
-        address to,
-        uint256 value,
-        bytes memory data
-    ) internal {
-        assembly {
-            let result := call(
-                gas(),
-                to,
-                value,
-                add(data, 0x20),
-                mload(data),
-                0,
-                0
-            )
-
-            if eq(result, 0) {
-                let size := returndatasize()
-                let ptr := mload(0x40)
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
+            safe.execTransactionFromModule(
+                call.to,
+                call.value,
+                call.data,
+                // forbid delegate calls, too unpredictable
+                Enum.Operation.Call
+            );
         }
     }
 }

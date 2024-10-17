@@ -50,7 +50,7 @@ describe("Schnorr tests", () => {
       ["bytes32", "bytes32", "bytes32", "uint8"],
       [px, sig.challenge.buffer, sig.signature.buffer, parity]
     );
-    const result = await schnorrModule.validate(msgHash, sigData);
+    const result = await schnorrModule.ecrecoverSchnorr(msgHash, sigData);
     expect(getSchnorrAddress()).to.equal(result);
   });
 });
