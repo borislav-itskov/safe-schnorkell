@@ -1,8 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {ISafe} from "@safe-global/safe-smart-account/contracts/interfaces/ISafe.sol";
 import {Enum} from "@safe-global/safe-smart-account/contracts/libraries/Enum.sol";
+
+interface Safe {
+    /**
+     * @notice Execute `operation` (0: Call, 1: DelegateCall) to `to` with `value` (Native Token)
+     * @param to Destination address of module transaction.
+     * @param value Ether value of module transaction.
+     * @param data Data payload of module transaction.
+     * @param operation Operation type of module transaction.
+     * @return success Boolean flag indicating if the call succeeded.
+     */
+    function execTransactionFromModule(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation
+    ) external returns (bool success);
+}
 
 contract SafeSchnorr {
     // secp256k1 group order
@@ -13,7 +29,7 @@ contract SafeSchnorr {
     address public immutable signer;
 
     // the safe address the module is enabled for
-    ISafe public immutable safe;
+    Safe public immutable safe;
 
     // Transaction structure
     // we handle replay protection separately by requiring (address(this), chainID, nonce) as part of the sig
@@ -25,7 +41,7 @@ contract SafeSchnorr {
 
     uint256 public nonce;
 
-    constructor(ISafe _safe, address _signer) {
+    constructor(Safe _safe, address _signer) {
         signer = _signer;
         safe = _safe;
     }

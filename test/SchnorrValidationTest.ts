@@ -10,6 +10,7 @@ import {
   hashMessage,
   SigningKey,
 } from "ethers";
+import { pk1 } from "./config";
 require("dotenv").config();
 
 /**
@@ -19,7 +20,7 @@ require("dotenv").config();
  */
 function getSchnorrAddress() {
   const publicKey = Buffer.from(
-    getBytes(SigningKey.computePublicKey(process.env.SIGNER_PRIVATE_KEY!, true))
+    getBytes(SigningKey.computePublicKey(pk1, true))
   );
   return getAddress(_generateSchnorrAddr(publicKey));
 }
@@ -34,15 +35,11 @@ describe("Schnorr tests", () => {
     // sign
     const msg = "just a test message";
     const msgHash = hashMessage(msg);
-    const privateKey = new Key(
-      Buffer.from(getBytes(process.env.SIGNER_PRIVATE_KEY!))
-    );
+    const privateKey = new Key(Buffer.from(getBytes(pk1)));
     const sig = Schnorrkel.sign(privateKey, msgHash);
 
     // wrap the result
-    const publicKey = getBytes(
-      SigningKey.computePublicKey(process.env.SIGNER_PRIVATE_KEY!, true)
-    );
+    const publicKey = getBytes(SigningKey.computePublicKey(pk1, true));
     const px = publicKey.slice(1, 33);
     const parity = publicKey[0] - 2 + 27;
     const abiCoder = new AbiCoder();
@@ -62,15 +59,11 @@ describe("Schnorr tests", () => {
     // sign
     const msg = "just a test message";
     const msgHash = hashMessage(msg);
-    const privateKey = new Key(
-      Buffer.from(getBytes(process.env.SIGNER_PRIVATE_KEY!))
-    );
+    const privateKey = new Key(Buffer.from(getBytes(pk1)));
     const sig = Schnorrkel.sign(privateKey, msgHash);
 
     // wrap the result
-    const publicKey = getBytes(
-      SigningKey.computePublicKey(process.env.SIGNER_PRIVATE_KEY!, true)
-    );
+    const publicKey = getBytes(SigningKey.computePublicKey(pk1, true));
     const px = publicKey.slice(1, 33);
     const parity = publicKey[0] - 2 + 27;
     const abiCoder = new AbiCoder();
