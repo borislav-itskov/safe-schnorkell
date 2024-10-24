@@ -2,80 +2,49 @@ import { ethers } from "hardhat";
 
 import { _generateSchnorrAddr } from "@borislav.itskov/schnorrkel.js/dist/core";
 import { expect } from "chai";
-import Schnorrkel, { Key } from "@borislav.itskov/schnorrkel.js";
-import {
-  AbiCoder,
-  getAddress,
-  getBytes,
-  hashMessage,
-  SigningKey,
-} from "ethers";
+import { SchnorrSigner } from "@borislav.itskov/schnorrkel.js";
+import { hashMessage } from "ethers";
 import { pk1 } from "./config";
 require("dotenv").config();
 
-/**
- * Generate the multisig address that will have permissions to sign
- *
- * @returns address
- */
-function getSchnorrAddress() {
-  const publicKey = Buffer.from(
-    getBytes(SigningKey.computePublicKey(pk1, true))
-  );
-  return getAddress(_generateSchnorrAddr(publicKey));
-}
-
 describe("Schnorr tests", () => {
   it("successfully validate a basic schnorr signature", async () => {
+    const signer = new SchnorrSigner(pk1);
     const schnorrModule = await ethers.deployContract("SafeSchnorr", [
       process.env.SAFE_ADDR!,
-      getSchnorrAddress(),
+      signer.getSchnorrAddress(),
     ]);
 
     // sign
     const msg = "just a test message";
-    const msgHash = hashMessage(msg);
-    const privateKey = new Key(Buffer.from(getBytes(pk1)));
-    const sig = Schnorrkel.sign(privateKey, msgHash);
-
-    // wrap the result
-    const publicKey = getBytes(SigningKey.computePublicKey(pk1, true));
-    const px = publicKey.slice(1, 33);
-    const parity = publicKey[0] - 2 + 27;
-    const abiCoder = new AbiCoder();
-    const sigData = abiCoder.encode(
-      ["bytes32", "bytes32", "bytes32", "uint8"],
-      [px, sig.challenge.buffer, sig.signature.buffer, parity]
+    const commitment = hashMessage(msg);
+    const sig = signer.sign(commitment);
+    const result = await schnorrModule.ecrecoverSchnorr(
+      commitment,
+      signer.getEcrecoverSignature(sig)
     );
-    const result = await schnorrModule.ecrecoverSchnorr(msgHash, sigData);
-    expect(getSchnorrAddress()).to.equal(result);
+    expect(signer.getSchnorrAddress()).to.equal(result);
   });
   it("fails because a different message was passed", async () => {
+    const signer = new SchnorrSigner(pk1);
     const schnorrModule = await ethers.deployContract("SafeSchnorr", [
       process.env.SAFE_ADDR!,
-      getSchnorrAddress(),
+      signer.getSchnorrAddress(),
     ]);
 
     // sign
     const msg = "just a test message";
     const msgHash = hashMessage(msg);
-    const privateKey = new Key(Buffer.from(getBytes(pk1)));
-    const sig = Schnorrkel.sign(privateKey, msgHash);
+    const sig = signer.sign(msgHash);
 
-    // wrap the result
-    const publicKey = getBytes(SigningKey.computePublicKey(pk1, true));
-    const px = publicKey.slice(1, 33);
-    const parity = publicKey[0] - 2 + 27;
-    const abiCoder = new AbiCoder();
-    const sigData = abiCoder.encode(
-      ["bytes32", "bytes32", "bytes32", "uint8"],
-      [px, sig.challenge.buffer, sig.signature.buffer, parity]
-    );
-
+    // validate
     const wrongMsg = "something else";
     const wrongMsgHash = hashMessage(wrongMsg);
     await expect(
-      schnorrModule.ecrecoverSchnorr(wrongMsgHash, sigData)
+      schnorrModule.ecrecoverSchnorr(
+        wrongMsgHash,
+        signer.getEcrecoverSignature(sig)
+      )
     ).to.be.revertedWith("SV_SCHNORR_FAILED");
   });
 });

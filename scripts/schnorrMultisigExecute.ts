@@ -1,15 +1,10 @@
-import {
-  AbiCoder,
-  Contract,
-  getBytes,
-  JsonRpcProvider,
-  keccak256,
-  Wallet,
-} from "ethers";
+import { AbiCoder, Contract, JsonRpcProvider, keccak256, Wallet } from "ethers";
 require("dotenv").config();
 import safeSchnorrJson from "../artifacts/contracts/SafeSchnorr.sol/SafeSchnorr.json";
-import Schnorrkel from "@borislav.itskov/schnorrkel.js";
-import SchnorrSigner from "../src/libs/SchnorrSigner";
+import {
+  SchnorrMultisigProvider,
+  SchnorrSigner,
+} from "@borislav.itskov/schnorrkel.js";
 
 async function main() {
   const rpcUrl = process.env.BASE_SEPOLIA_RPC;
@@ -58,37 +53,22 @@ async function main() {
 
   const schnorrSignerOne = new SchnorrSigner(signerPrivateKey);
   const schnorrSignerTwo = new SchnorrSigner(signerTwoPrivateKey);
-  const publicKeys = [
-    schnorrSignerOne.getPublicKey(),
-    schnorrSignerTwo.getPublicKey(),
-  ];
-  const publicNonces = [
-    schnorrSignerOne.getPublicNonces(),
-    schnorrSignerTwo.getPublicNonces(),
-  ];
-  const { signature: sigOne, challenge: e } =
-    schnorrSignerOne.mutliSignatureSign(commitment, publicKeys, publicNonces);
-  const { signature: sigTwo } = schnorrSignerTwo.mutliSignatureSign(
+  const multisigProvider = new SchnorrMultisigProvider([
+    schnorrSignerOne,
+    schnorrSignerTwo,
+  ]);
+  const publicKeys = multisigProvider.getPublicKeys();
+  const publicNonces = multisigProvider.getPublicNonces();
+  const signature = schnorrSignerOne.sign(commitment, publicKeys, publicNonces);
+  const signatureTwo = schnorrSignerTwo.sign(
     commitment,
     publicKeys,
     publicNonces
   );
-  const sSummed = Schnorrkel.sumSigs([sigOne, sigTwo]);
-
-  // the multisig px and parity
-  const combinedPublicKey = getBytes(
-    Schnorrkel.getCombinedPublicKey(publicKeys).buffer
+  const res = await schnorrModule.execute(
+    calls,
+    multisigProvider.getEcrecoverSignature([signature, signatureTwo])
   );
-  const px = combinedPublicKey.slice(1, 33);
-  const parity = combinedPublicKey[0] - 2 + 27;
-
-  // wrap the result
-  const signature = abiCoder.encode(
-    ["bytes32", "bytes32", "bytes32", "uint8"],
-    [px, e.buffer, sSummed.buffer, parity]
-  );
-
-  const res = await schnorrModule.execute(calls, signature);
   console.log(res);
 }
 

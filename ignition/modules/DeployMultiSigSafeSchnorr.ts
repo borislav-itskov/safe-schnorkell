@@ -2,35 +2,24 @@
 // Learn more about it at https://hardhat.org/ignition
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { ethers } from "ethers";
+
 require("dotenv").config();
 import { _generateSchnorrAddr } from "@borislav.itskov/schnorrkel.js/dist/core";
-import Schnorrkel, { Key } from "@borislav.itskov/schnorrkel.js";
+import {
+  SchnorrMultisigProvider,
+  SchnorrSigner,
+} from "@borislav.itskov/schnorrkel.js";
 
 function getSchnorrAddress() {
-  const publicKey = new Key(
-    Buffer.from(
-      ethers.getBytes(
-        ethers.SigningKey.computePublicKey(
-          process.env.SIGNER_PRIVATE_KEY!,
-          true
-        )
-      )
-    )
+  const schnorrSigner = new SchnorrSigner(process.env.SIGNER_PRIVATE_KEY!);
+  const schnorrSignerTwo = new SchnorrSigner(
+    process.env.SIGNER_TWO_PRIVATE_KEY!
   );
-  const publicKeyTwo = new Key(
-    Buffer.from(
-      ethers.getBytes(
-        ethers.SigningKey.computePublicKey(
-          process.env.SIGNER_TWO_PRIVATE_KEY!,
-          true
-        )
-      )
-    )
-  );
-  return _generateSchnorrAddr(
-    Schnorrkel.getCombinedPublicKey([publicKey, publicKeyTwo]).buffer
-  );
+  const multisigProvider = new SchnorrMultisigProvider([
+    schnorrSigner,
+    schnorrSignerTwo,
+  ]);
+  return multisigProvider.getSchnorrAddress();
 }
 
 const DeploySafeSchnorr = buildModule("DeploySafeSchnorr", (m) => {

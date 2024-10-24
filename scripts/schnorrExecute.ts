@@ -9,7 +9,7 @@ import {
 } from "ethers";
 require("dotenv").config();
 import safeSchnorrJson from "../artifacts/contracts/SafeSchnorr.sol/SafeSchnorr.json";
-import Schnorrkel, { Key } from "@borislav.itskov/schnorrkel.js";
+import Schnorrkel, { Key, SchnorrSigner } from "@borislav.itskov/schnorrkel.js";
 
 async function main() {
   const rpcUrl = process.env.BASE_SEPOLIA_RPC;
@@ -47,18 +47,12 @@ async function main() {
       [safeAddress, moduleAddr, baseSepoliaChainId, nonce, calls]
     )
   );
-  const privateKey = new Key(Buffer.from(getBytes(signerPrivateKey)));
-  const sigData = Schnorrkel.sign(privateKey, commitment);
-  const publicKey = getBytes(
-    SigningKey.computePublicKey(signerPrivateKey, true)
+  const signer = new SchnorrSigner(signerPrivateKey);
+  const signature = signer.sign(commitment);
+  const res = await schnorrModule.execute(
+    calls,
+    signer.getEcrecoverSignature(signature)
   );
-  const px = publicKey.slice(1, 33);
-  const parity = publicKey[0] - 2 + 27;
-  const signature = abiCoder.encode(
-    ["bytes32", "bytes32", "bytes32", "uint8"],
-    [px, sigData.challenge.buffer, sigData.signature.buffer, parity]
-  );
-  const res = await schnorrModule.execute(calls, signature);
   console.log(res);
 }
 
