@@ -55,3 +55,27 @@ A log of the transaction will appear if everything is successful. Open it in bas
 
 The schnorr signatures for this demo are produced by using https://github.com/borislav-itskov/schnorrkel.js  
 The library can be freely used for Schnorr
+
+## Trying out the multisignature version
+
+In order to try the multisignature version, a little bit of more setup is required.
+We have to start by entering a second private key in the .env config:
+
+```
+SIGNER_TWO_PRIVATE_KEY=
+```
+
+After we have it set, let's deploy the 2/2 multisig module. It's the same contract but with a different schnorr signer:  
+`npx hardhat ignition deploy ignition/modules/DeployMultiSigSafeSchnorr.ts --network base-sepolia --verify --reset`
+
+We enter its contract address in the .env file:
+
+```
+MULTI_SIG_MODULE_ADDR
+```
+
+And use the same address from above to enable the module:
+`MODULE_ADDR={THE_ADDRESS_FROM_ABOVE} npx hardhat run ./scripts/enableModule.ts`
+
+Finally, we run the multisig script:  
+`npx hardhat run ./scripts/schnorrMultisigExecute.ts`
